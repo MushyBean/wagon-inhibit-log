@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wagon Inhibit Log</title>
+
+<!-- PWA setup -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wagon Log">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<style>
+  :root {
+    --bg: #000000;
+    --surface: #2c2c2e;
+    --surface-active: #3a3a3c;
+    --selected: #22c55e;
+    --selected-text: #04140a;
+    --text: #ffffff;
+    --muted: #8e8e93;
+    --clear: #ff3b30;
+    --clear-active: #d92c22;
+    box-sizing: border-box;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  header {
+    flex-shrink: 0;
+    padding: 18px 16px 10px;
+    text-align: center;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .subtitle {
+    margin-top: 4px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .count {
+    margin-top: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--selected);
+    min-height: 1.2em;
+  }
+
+  main {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 6px 12px 12px;
+    width: 100%;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    max-width: 640px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  button.wagon {
+    appearance: none;
+    border: none;
+    border-radius: 16px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 1.7rem;
+    font-weight: 700;
+    padding: 0;
+    width: 100%;
+    min-height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.08s ease, transform 0.06s ease;
+    touch-action: manipulation;
+  }
+
+  button.wagon:active {
+    transform: scale(0.95);
+  }
+
+  button.wagon.selected {
+    background: var(--selected);
+    color: var(--selected-text);
+  }
+
+  footer {
+    flex-shrink: 0;
+    padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  button.clear {
+    appearance: none;
+    border: none;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    display: block;
+    background: var(--clear);
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 700;
+    padding: 18px 0;
+    border-radius: 16px;
+    touch-action: manipulation;
+  }
+
+  button.clear:active {
+    background: var(--clear-active);
+    transform: scale(0.98);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Wagon Inhibit Log</h1>
+  <div class="subtitle">Tap wagons with fire barrier in INHIBIT</div>
+  <div class="count" id="count"></div>
+</header>
+
+<main>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer>
+  <button class="clear" id="clearBtn">Clear</button>
+</footer>
+
+<script>
+  const STORAGE_KEY = 'wagon-inhibit-selected';
+  const EXCLUDED = new Set([15, 16]);
+  const wagons = [];
+  for (let n = 3; n <= 28; n++) {
+    if (!EXCLUDED.has(n)) wagons.push(n);
+  }
+
+  let selected = new Set();
+
+  function loadSelection() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) selected = new Set(arr);
+      }
+    } catch (e) {
+      selected = new Set();
+    }
+  }
+
+  function saveSelection() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(selected)));
+    } catch (e) {
+      // storage unavailable — fail silently, app still works this session
+    }
+  }
+
+  function updateCount() {
+    const countEl = document.getElementById('count');
+    const n = selected.size;
+    countEl.textContent = n > 0 ? `${n} wagon${n === 1 ? '' : 's'} selected` : '';
+  }
+
+  function render() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    wagons.forEach(num => {
+      const btn = document.createElement('button');
+      btn.className = 'wagon' + (selected.has(num) ? ' selected' : '');
+      btn.textContent = num;
+      btn.setAttribute('data-num', num);
+      btn.addEventListener('click', () => toggleWagon(num));
+      grid.appendChild(btn);
+    });
+    updateCount();
+  }
+
+  function toggleWagon(num) {
+    if (selected.has(num)) {
+      selected.delete(num);
+    } else {
+      selected.add(num);
+    }
+    saveSelection();
+    render();
+  }
+
+  function clearAll() {
+    selected.clear();
+    saveSelection();
+    render();
+  }
+
+  document.getElementById('clearBtn').addEventListener('click', clearAll);
+
+  loadSelection();
+  render();
+
+  // Register service worker for offline capability
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {
+        // registration failed silently — app still works online
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
