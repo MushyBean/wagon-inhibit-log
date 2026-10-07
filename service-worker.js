@@ -1,10 +1,11 @@
 // Bump this version string whenever you update index.html (or any cached file)
 // so the service worker knows to fetch fresh copies instead of stale ones.
-const CACHE_VERSION = 'wagon-inhibit-log-v1';
+const CACHE_VERSION = 'wagon-inhibit-log-v2';
 
 const APP_SHELL = [
   './',
   './index.html',
+  './defibrillator.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-192-maskable.png',
