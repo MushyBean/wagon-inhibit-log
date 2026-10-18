@@ -20,8 +20,12 @@
     --bg: #000000;
     --surface: #2c2c2e;
     --surface-active: #3a3a3c;
-    --selected: #22c55e;
-    --selected-text: #04140a;
+    --status-green: #22c55e;
+    --status-green-text: #04140a;
+    --status-yellow: #ffd60a;
+    --status-yellow-text: #1a1400;
+    --status-red: #ff3b30;
+    --status-red-text: #2a0500;
     --text: #ffffff;
     --muted: #8e8e93;
     --clear: #ff3b30;
@@ -76,7 +80,7 @@
     margin-top: 10px;
     font-size: 0.95rem;
     font-weight: 600;
-    color: var(--selected);
+    color: var(--status-green);
     min-height: 1.2em;
   }
 
@@ -119,10 +123,59 @@
     transform: scale(0.95);
   }
 
-  button.wagon.selected {
-    background: var(--selected);
-    color: var(--selected-text);
+  button.wagon.status-green {
+    background: var(--status-green);
+    color: var(--status-green-text);
   }
+
+  button.wagon.status-yellow {
+    background: var(--status-yellow);
+    color: var(--status-yellow-text);
+  }
+
+  button.wagon.status-red {
+    background: var(--status-red);
+    color: var(--status-red-text);
+  }
+
+  .key {
+    max-width: 640px;
+    margin: 14px auto 0;
+    padding: 14px 16px;
+    background: var(--surface);
+    border-radius: 16px;
+  }
+
+  .key-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+
+  .key-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.95rem;
+    padding: 5px 0;
+    line-height: 1.3;
+  }
+
+  .swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .swatch.default { background: var(--surface-active); }
+  .swatch.green { background: var(--status-green); }
+  .swatch.yellow { background: var(--status-yellow); }
+  .swatch.red { background: var(--status-red); }
 
   footer {
     flex-shrink: 0;
@@ -187,12 +240,20 @@
 
 <header>
   <h1>Wagon Inhibit Log</h1>
-  <div class="subtitle">Tap wagons with fire barrier in INHIBIT</div>
+  <div class="subtitle">Tap a wagon to cycle its inhibit status</div>
   <div class="count" id="count"></div>
 </header>
 
 <main>
   <div class="grid" id="grid"></div>
+
+  <div class="key">
+    <div class="key-title">Key</div>
+    <div class="key-row"><span class="swatch default"></span> Not in inhibit</div>
+    <div class="key-row"><span class="swatch green"></span> Inhibit — confirmed by Chef</div>
+    <div class="key-row"><span class="swatch yellow"></span> Inhibit — unconfirmed by Chef</div>
+    <div class="key-row"><span class="swatch red"></span> Inhibit — must be put back in</div>
+  </div>
 </main>
 
 <footer>
@@ -207,23 +268,33 @@
     if (!EXCLUDED.has(n)) wagons.push(n);
   }
 
-  let selected = new Set();
+  // status values: 0 = default/not in inhibit, 1 = green (confirmed by Chef),
+  // 2 = yellow (unconfirmed by Chef), 3 = red (must be put back in)
+  const STATUS_CLASS = { 1: 'status-green', 2: 'status-yellow', 3: 'status-red' };
+  let status = {};
 
   function loadSelection() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const arr = JSON.parse(raw);
-        if (Array.isArray(arr)) selected = new Set(arr);
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          // Migrate from the old format (a plain list of selected wagon
+          // numbers, which only ever meant "green"/confirmed).
+          status = {};
+          parsed.forEach(num => { status[num] = 1; });
+        } else if (parsed && typeof parsed === 'object') {
+          status = parsed;
+        }
       }
     } catch (e) {
-      selected = new Set();
+      status = {};
     }
   }
 
   function saveSelection() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(selected)));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(status));
     } catch (e) {
       // storage unavailable — fail silently, app still works this session
     }
@@ -231,36 +302,34 @@
 
   function updateCount() {
     const countEl = document.getElementById('count');
-    const n = selected.size;
-    countEl.textContent = n > 0 ? `${n} wagon${n === 1 ? '' : 's'} selected` : '';
+    const n = Object.values(status).filter(s => s > 0).length;
+    countEl.textContent = n > 0 ? `${n} wagon${n === 1 ? '' : 's'} in inhibit` : '';
   }
 
   function render() {
     const grid = document.getElementById('grid');
     grid.innerHTML = '';
     wagons.forEach(num => {
+      const s = status[num] || 0;
       const btn = document.createElement('button');
-      btn.className = 'wagon' + (selected.has(num) ? ' selected' : '');
+      btn.className = 'wagon' + (STATUS_CLASS[s] ? ' ' + STATUS_CLASS[s] : '');
       btn.textContent = num;
       btn.setAttribute('data-num', num);
-      btn.addEventListener('click', () => toggleWagon(num));
+      btn.addEventListener('click', () => cycleWagon(num));
       grid.appendChild(btn);
     });
     updateCount();
   }
 
-  function toggleWagon(num) {
-    if (selected.has(num)) {
-      selected.delete(num);
-    } else {
-      selected.add(num);
-    }
+  function cycleWagon(num) {
+    const current = status[num] || 0;
+    status[num] = (current + 1) % 4;
     saveSelection();
     render();
   }
 
   function clearAll() {
-    selected.clear();
+    status = {};
     saveSelection();
     render();
 
