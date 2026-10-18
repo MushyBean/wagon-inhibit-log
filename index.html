@@ -263,6 +263,13 @@
     selected.clear();
     saveSelection();
     render();
+
+    // Master clear: also wipe the defibrillator log's saved status
+    try {
+      localStorage.removeItem('defibrillator-log-status');
+    } catch (e) {
+      // storage unavailable — fail silently
+    }
   }
 
   document.getElementById('clearBtn').addEventListener('click', clearAll);
