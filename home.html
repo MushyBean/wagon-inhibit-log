@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Home</title>
+
+<!-- PWA setup -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wagon Log">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<style>
+  :root {
+    --bg: #000000;
+    --surface: #2c2c2e;
+    --surface-active: #3a3a3c;
+    --text: #ffffff;
+    --muted: #8e8e93;
+    box-sizing: border-box;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  header {
+    flex-shrink: 0;
+    padding: 22px 16px 10px;
+    text-align: center;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .subtitle {
+    margin-top: 4px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  main {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    max-width: 640px;
+    width: 100%;
+  }
+
+  a.tile {
+    appearance: none;
+    border: none;
+    text-decoration: none;
+    border-radius: 20px;
+    background: var(--surface);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 28px 12px;
+    min-height: 160px;
+    touch-action: manipulation;
+    transition: background-color 0.08s ease, transform 0.06s ease;
+  }
+
+  a.tile:active {
+    background: var(--surface-active);
+    transform: scale(0.97);
+  }
+
+  a.tile img,
+  a.tile svg {
+    width: 64px;
+    height: 64px;
+  }
+
+  a.tile .tile-label {
+    font-size: 1rem;
+    font-weight: 700;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Home</h1>
+  <div class="subtitle">Choose a log</div>
+</header>
+
+<main>
+  <div class="tiles">
+    <a class="tile" href="index.html" aria-label="Inhibited wagons log">
+      <img src="icons/icon-192.png" alt="" width="64" height="64">
+      <span class="tile-label">Wagons</span>
+    </a>
+
+    <a class="tile" href="defibrillator.html" aria-label="Defibrillator log">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 21s-7.5-4.6-10-9.2C.5 8.3 2 4.5 5.6 4c2-.3 3.6.6 4.9 2.1L12 7.5l1.5-1.4c1.3-1.5 2.9-2.4 4.9-2.1 3.6.5 5.1 4.3 3.6 7.8C19.5 16.4 12 21 12 21z" fill="#ff3b30"/>
+        <path d="M10.6 10.2h2.1l-1 2.6h2.4l-3.6 5 .9-3.6h-2l1.2-4z" fill="#ffd60a"/>
+      </svg>
+      <span class="tile-label">Defibrillator</span>
+    </a>
+  </div>
+</main>
+
+<script>
+  // Register service worker for offline capability
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {
+        // registration failed silently — app still works online
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
